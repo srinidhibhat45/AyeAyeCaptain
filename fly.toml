@@ -1,0 +1,33 @@
+# Fly.io for the GAME SERVER. The client goes to Vercel separately — see
+# DEPLOY.md.  Deploy with `fly deploy --remote-only` and you need no Docker
+# on your own machine.
+app = "aye-aye-captain"
+primary_region = "iad"          # put this near your players, not near you
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # A match runs fifteen minutes and the players are the whole point: do not
+  # let the machine stop underneath them, and do not make the first arrival
+  # wait out a cold boot.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[checks.health]
+  type = "http"
+  port = 8787
+  path = "/healthz"
+  interval = "30s"
+  timeout = "4s"
+  grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

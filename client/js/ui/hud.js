@@ -353,9 +353,19 @@ export class HUD {
     this.mini.width = Math.round(mw * dpr); this.mini.height = Math.round(mh * dpr);
   }
 
-  setConn(state) {
+  setConn(state, info) {
     const n = $('conn');
-    if (state === 'open') { n.classList.remove('show'); return; }
+    if (state === 'open') { n.classList.remove('show'); n.classList.remove('bad'); return; }
+    // A couple of failures is a flaky moment and says nothing useful. Half a
+    // dozen is a wrong address, and then the single most helpful thing anyone
+    // can be told is which address — otherwise all you see is a clock that
+    // never starts, which looks like the game is simply broken.
+    if (info && info.tries >= 5 && info.server) {
+      n.textContent = `CANNOT REACH THE GAME SERVER — ${info.server}`;
+      n.classList.add('show', 'bad');
+      return;
+    }
+    n.classList.remove('bad');
     n.textContent = state === 'connecting' ? 'RAISING THE SIGNAL…' : 'SIGNAL LOST — TRYING AGAIN';
     n.classList.add('show');
   }

@@ -7,11 +7,13 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
+    "build": "node tools/build-client.mjs",
     "balance": "node tools/balance.js",
     "lint": "node tools/lint-colors.mjs",
     "playtest": "node tools/playtest.js all",
     "roster": "node tools/roster.js",
-    "check": "npm run lint && npm run roster && npm run playtest"
+    "check": "npm run lint && npm run endpoint && npm run roster && npm run playtest",
+    "endpoint": "node tools/test-endpoint.mjs"
   },
   "engines": {
     "node": ">=18"

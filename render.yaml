@@ -1,0 +1,21 @@
+# Render blueprint for the GAME SERVER. The client goes to Vercel separately —
+# see DEPLOY.md.
+#
+# Note the plan: on `free`, Render stops the service after fifteen minutes with
+# nobody connected, and the next player waits out a cold start of the better
+# part of a minute. That is survivable if you open the page yourself a minute
+# before anyone else arrives; `starter` removes the question.
+services:
+  - type: web
+    name: aye-aye-captain
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/index.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Uncomment once the client has a home, so only it may open a socket.
+      # - key: ALLOW_ORIGIN
+      #   value: https://your-project.vercel.app

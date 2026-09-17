@@ -556,6 +556,7 @@ body.coaching #feed{opacity:.22;transition:opacity .3s}
   z-index:46;opacity:0;transition:opacity .3s;
 }
 #conn.show{opacity:1}
+#conn.bad{color:var(--bad);max-width:min(92vw,760px);text-align:center;line-height:1.5}
 
 .fullcover{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--ink);z-index:99}
 .card{padding:30px 34px;max-width:460px;text-align:center}

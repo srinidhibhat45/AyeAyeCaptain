@@ -76,7 +76,7 @@ const needJoin = !query.get('name') && !stored('aac_name');
 
 const net = new Net({
   autoConnect: !needJoin,
-  status: (s) => hud.setConn(s),
+  status: (s, info) => hud.setConn(s, info),
   msg: (m) => {
     if (m.k === 'world') {
       G.you = m.you; G.rules = m.rules; G.room = m.room || G.room;

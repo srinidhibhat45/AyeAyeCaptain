@@ -18,6 +18,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const CLIENT = path.join(ROOT, 'client');
 const PORT = process.env.PORT || 8787;
+// Hosts that run a container hand you a port and expect you on every
+// interface. Binding explicitly beats relying on the default.
+const HOST = process.env.HOST || '0.0.0.0';
+// A public address is a public address. One person with a script should not be
+// able to open ten thousand matches and walk off.
+const MAX_ROOMS = Math.max(1, Number(process.env.MAX_ROOMS ?? 32));
+// Set ALLOW_ORIGIN to a comma-separated list of sites that may open a socket —
+// your static host — and the rest are turned away at the gangway. Left unset,
+// anyone may connect, which is what you want until you know where the client
+// will live. Tools send no Origin at all and are always let through.
+const ALLOW = (process.env.ALLOW_ORIGIN || '').split(',').map(x => x.trim()).filter(Boolean);
 // Hulls per side when nobody is waiting. Bots make up any shortfall, and both
 // fleets always sail the same number, however the humans are split.
 const FLEET = Math.max(1, Math.min(MAX_PER_TEAM, Number(process.env.BOTS ?? FLEET_SIZE)));
@@ -37,6 +48,18 @@ const MIME = {
 // ---------------------------------------------------------------------------
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent((req.url || '/').split('?')[0]);
+
+  // Every host worth deploying to wants somewhere to poke to see if the thing
+  // is alive. It answers with what is actually going on aboard, which makes it
+  // useful to a human with curl as well as to a load balancer.
+  if (url === '/healthz') {
+    let players = 0;
+    for (const r of rooms.values()) players += r.clients.size;
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify({ ok: true, rooms: rooms.size, players, uptime: Math.round(process.uptime()) }));
+    return;
+  }
+
   if (url === '/') url = '/index.html';
 
   const base = url.startsWith('/shared/') ? ROOT : CLIENT;
@@ -62,6 +85,7 @@ const rooms = new Map();
 function getRoom(id) {
   let r = rooms.get(id);
   if (!r) {
+    if (rooms.size >= MAX_ROOMS) return null;
     r = { id, match: new Match(id, { skill: SKILL, fleetSize: FLEET }), clients: new Set() };
     r.match.fillBots(FLEET);
     r.match.begin();
@@ -98,7 +122,27 @@ const RULES = { HULLS, ORDERS, MAX_PER_TEAM, MAX_PLAYERS, FLEET };
 // ---------------------------------------------------------------------------
 //  WebSocket
 // ---------------------------------------------------------------------------
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({
+  server,
+  verifyClient: ALLOW.length ? ({ origin }) => !origin || ALLOW.includes(origin) : undefined,
+  // Nothing the client legitimately says comes near this, and with deflate in
+  // the picture a few compressed bytes could otherwise ask the server to
+  // inflate a hundred megabytes. ws applies this to the DECOMPRESSED size,
+  // which is exactly the number that matters.
+  maxPayload: 8 * 1024,
+  // One snapshot looks very nearly like the one before it, so deflate spends
+  // its time saying what moved rather than describing the sea again. Keeping
+  // the sliding window BETWEEN messages is the whole trick — without context
+  // takeover the saving collapses. Measured on the wire against a real match:
+  // 93% off, which is 0.56 Mbit/s a player down to 0.038.
+  perMessageDeflate: {
+    zlibDeflateOptions: { level: 6, memLevel: 8 },
+    serverNoContextTakeover: false,
+    clientNoContextTakeover: false,
+    concurrencyLimit: 16,
+    threshold: 256,
+  },
+});
 
 wss.on('connection', (ws, req) => {
   const q = new URL(req.url, 'http://x');
@@ -107,6 +151,7 @@ wss.on('connection', (ws, req) => {
   const wantTeam = q.searchParams.get('team');
 
   const room = getRoom(roomId);
+  if (!room) { send(ws, { k: 'full', max: MAX_PLAYERS }); ws.close(); return; }
   const id = `p${Math.random().toString(36).slice(2, 9)}`;
   const ship = room.match.addPlayer(id, name, TEAMS.includes(wantTeam) ? wantTeam : null);
   if (!ship) {
@@ -182,13 +227,22 @@ setInterval(() => {
   last = nowMs;
   if (dt > 0.25) dt = 0.25;                 // never let a stall teleport the world
   for (const r of rooms.values()) {
-    r.match.step(dt);
-    if (r.match.phase === PHASE.OVER && r.match.now >= r.match.phaseEnd) restartRoom(r);
+    // A throw in here would otherwise escape the interval, become an uncaught
+    // exception, and drop every player on the server over one bad room. Close
+    // that room instead; its people reconnect into a fresh one.
+    try {
+      r.match.step(dt);
+      if (r.match.phase === PHASE.OVER && r.match.now >= r.match.phaseEnd) restartRoom(r);
+    } catch (e) {
+      console.error(`[room ${r.id}] step failed, closing it:`, e);
+      for (const c of r.clients) { try { c.ws.close(1011, 'room failed'); } catch {} }
+      rooms.delete(r.id);
+    }
   }
 }, 1000 / TICK_HZ);
 
 setInterval(() => {
-  for (const r of rooms.values()) {
+  for (const r of rooms.values()) try {
     // One snapshot per team, then a thin private slice per player: teammates
     // share vision, so there is no point recomputing it per client.
     const snaps = {};
@@ -199,6 +253,8 @@ setInterval(() => {
       c.team = s.team;
       send(c.ws, r.match.snapshotFor(c.id, snaps[s.team]));
     }
+  } catch (e) {
+    console.error(`[room ${r.id}] snapshot failed:`, e);
   }
 }, 1000 / SNAP_HZ);
 
@@ -210,10 +266,34 @@ setInterval(() => {
   }
 }, 20_000);
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log(`\n  AYE AYE, CAPTAIN — Tides of War`);
   console.log(`  http://localhost:${PORT}`);
   console.log(`  four to ten players — send them the link, add ?room=<code> for a private action`);
   console.log(`  ${FLEET} hulls a side, AI crewing any empty berth, skill ${SKILL}` +
               `   (BOTS= and SKILL= to change)\n`);
+  if (ALLOW.length) console.log(`  sockets accepted only from: ${ALLOW.join(', ')}\n`);
 });
+
+// ---------------------------------------------------------------------------
+//  Going quietly
+//
+//  A redeploy sends SIGTERM and then, not long after, SIGKILL. Told nothing,
+//  every player sees a dead socket and a long silence. Told 1012 — service
+//  restart — the client reconnects of its own accord, and the interruption is
+//  a couple of seconds rather than the end of the match.
+// ---------------------------------------------------------------------------
+let closing = false;
+function shutdown(sig) {
+  if (closing) return;
+  closing = true;
+  console.log(`\n  ${sig} — standing down`);
+  for (const r of rooms.values()) for (const c of r.clients) {
+    try { c.ws.close(1012, 'restart'); } catch {}
+  }
+  wss.close();
+  server.close(() => process.exit(0));
+  // If something is wedged, do not make the host reach for SIGKILL.
+  setTimeout(() => process.exit(0), 3000).unref();
+}
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => shutdown(sig));

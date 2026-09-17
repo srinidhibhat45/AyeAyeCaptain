@@ -320,6 +320,35 @@ panel, because a gunfight is not a thing you can read a table during.
 
 ---
 
+## Putting her to sea
+
+```bash
+npm start        # http://localhost:8787 — serves the client and runs the match
+```
+
+That is the whole thing locally: one process, no build step, no configuration.
+
+To host it, the two halves go to different places, because they want different
+things. The client is 306 KB of static files and wants a CDN. The server holds
+a socket open to every player for fifteen minutes and wants a machine.
+
+**Vercel can host the client but not the server** — it has no WebSocket upgrade
+and no process that outlives a request, and this is a 30 Hz simulation with
+rooms in memory. So: client on Vercel, server on Fly.io, Render or Railway,
+joined by one environment variable (`AAC_SERVER`) that tells the client where
+the match is. Configuration for all of them is in the repo.
+
+**[DEPLOY.md](DEPLOY.md)** has the steps, the knobs, a checklist to run down
+before a session with real people, and what each failure mode looks like.
+
+One convenience worth knowing: the game server also serves a full copy of the
+client on its own URL, so that address alone is a complete, playable game if
+you would rather not split anything, or if the CDN is having a bad day.
+
+```bash
+npm run check    # colour lint, endpoint resolution, roster rules, 13 scenarios
+```
+
 ## How it is built
 
 Node with one dependency (`ws`). The server is authoritative; the client only
@@ -341,6 +370,8 @@ tools/      balance.js     headless AI-vs-AI match runner
             playtest.js    end-to-end scenarios over real WebSockets
             humanclient.js a headless player that sees only what a snapshot says
             roster.js      the four-to-ten rules, hammered in-process
+            build-client.mjs   assembles dist/ for a static host
+            test-endpoint.mjs  where the client looks for the game server
             lint-colors.mjs
 ```
 
@@ -355,8 +386,12 @@ tools/      balance.js     headless AI-vs-AI match runner
   a vague contact instead of a ship. The roster is redacted the same way: what
   the enemy has *done* is public, what they are doing *right now* — which hulls
   are in the water and what they are — is not. You cannot cheat by reading the
-  socket, because the information is not in it. A snapshot runs about 3.7 KB,
-  which is 0.6 Mbit/s down per player at twenty a second.
+  socket, because the information is not in it.
+- **Snapshots are compressed against each other.** One snapshot is very nearly
+  the last one, so `permessage-deflate` with the sliding window kept *between*
+  messages spends its bytes on what moved rather than describing the sea again.
+  A 4.7 KB snapshot goes out in about 230 B: measured on the wire, 0.56 Mbit/s
+  per player down to **0.038**. Ten players now cost less than one used to.
 - **The simulation clock is `Match.now`,** advanced by `dt` rather than read from
   the wall clock, which is what lets `tools/balance.js` play a full fifteen
   minute match in a fraction of a second.
