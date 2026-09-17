@@ -1,0 +1,23 @@
+{
+  "name": "aye-aye-captain",
+  "version": "1.0.0",
+  "description": "Team-vs-team naval tower defence for four to ten players, in the browser.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "balance": "node tools/balance.js",
+    "lint": "node tools/lint-colors.mjs",
+    "playtest": "node tools/playtest.js all",
+    "roster": "node tools/roster.js",
+    "check": "npm run lint && npm run roster && npm run playtest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}

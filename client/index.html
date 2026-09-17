@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Aye Aye, Captain — Tides of War</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚓</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="gl"></canvas>
+<canvas id="hud"></canvas>
+
+<!-- ─────────────────────────────  JOIN  ──────────────────────────── -->
+<div id="joincard" class="fullcover">
+  <div class="card join">
+    <h1>AYE AYE, CAPTAIN</h1>
+    <p class="sub">Team-vs-team naval tower defence. Four to ten hands, fifteen minutes.</p>
+    <label for="join-name">WHAT DO THEY CALL YOU?</label>
+    <input id="join-name" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Bosun">
+    <label>WHICH FLEET?</label>
+    <div class="join-sides">
+      <button type="button" class="js scarlet" data-team="scarlet">SCARLET</button>
+      <button type="button" class="js any on" data-team="">EITHER</button>
+      <button type="button" class="js cobalt" data-team="cobalt">COBALT</button>
+    </div>
+    <button id="join-go" type="button" class="join-go">PUT TO SEA</button>
+    <p class="join-room">Sailing in room <b id="join-roomid">main</b> — share this page's link and your
+       friends join the same action. Add <code>?room=anything</code> for a private one.</p>
+  </div>
+</div>
+
+<div id="nogl" class="fullcover">
+  <div class="card">
+    <h1>NO WEBGL2</h1>
+    <p>This game needs WebGL2. Try a current Chrome, Edge, Firefox or Safari,
+       and check that hardware acceleration is switched on.</p>
+  </div>
+</div>
+
+<!-- ─────────────────────────────  TOP  ───────────────────────────── -->
+<header id="topbar">
+  <div class="fleet scarlet" id="fleet-scarlet">
+    <div class="fleet-name">SCARLET FLEET</div>
+    <div class="colours"><span class="fill"></span><b class="val">520</b></div>
+  </div>
+
+  <div id="centre">
+    <div id="phase">MUSTER</div>
+    <div id="clock">15:00</div>
+    <div id="pips"></div>
+    <div id="bullion"></div>
+  </div>
+
+  <div class="fleet cobalt" id="fleet-cobalt">
+    <div class="fleet-name">COBALT COMPACT</div>
+    <div class="colours"><span class="fill"></span><b class="val">520</b></div>
+  </div>
+</header>
+
+<!-- ─────────────────────────────  FEED  ──────────────────────────── -->
+<ul id="feed"></ul>
+<div id="objective"></div>
+<div id="musterhint" hidden></div>
+
+<!-- ───────────────────────────  ADMIRALTY  ───────────────────────── -->
+<aside id="admiralty" hidden>
+  <div class="ad-head">
+    <span class="rank">ADMIRALTY</span>
+    <span class="purse"><i>⚜</i><b id="purse">0</b><small id="income">+0/s</small></span>
+  </div>
+  <div class="ad-hint">click to buy · right-click to sell back at 60%</div>
+  <div id="upgrades"></div>
+  <div class="ad-sep">STANDING ORDERS <em>shift + 1&thinsp;–&thinsp;5</em></div>
+  <div id="orders"></div>
+  <div id="requests"></div>
+</aside>
+
+<!-- ─────────────────  FLEET KIT (what the crew can see)  ──────────────── -->
+<aside id="fleetkit" hidden>
+  <div class="ad-head">
+    <span class="rank">THE FLEET</span>
+    <span class="purse"><i>⚜</i><b id="fk-purse">0</b><small id="fk-income">+0/s</small></span>
+  </div>
+  <div class="fk-cap">UNDER <b id="fk-captain">—</b></div>
+  <div id="fk-upgrades"></div>
+  <div class="fk-hint">press <b>Y</b> to tell your captain what the fleet needs</div>
+</aside>
+
+<!-- ────────────────────────────  STATUS  ─────────────────────────── -->
+<section id="status">
+  <div class="ship-line"><b id="hullname">BRIGANTINE</b><span id="rolebadge"></span></div>
+  <div class="meters">
+    <div class="meter"><label>HULL</label><div class="track"><i id="m-hull"></i></div><span id="v-hull">0</span></div>
+    <div class="meter"><label>RIG</label><div class="track"><i id="m-sail"></i></div><span id="v-sail">0</span></div>
+    <div class="meter"><label>CREW</label><div class="track"><i id="m-crew"></i></div><span id="v-crew">0</span></div>
+    <div class="meter thin"><label>OARS</label><div class="track"><i id="m-stam"></i></div><span></span></div>
+  </div>
+  <div class="sailbox">
+    <label>SAIL <em>W / S</em></label>
+    <div id="sailladder">
+      <i data-s="0"><b>FURLED</b></i>
+      <i data-s="1"><b>REEFED</b></i>
+      <i data-s="2"><b>FULL</b></i>
+      <i data-s="3"><b>PRESS</b></i>
+    </div>
+  </div>
+  <div class="gunbox">
+    <label>GUNS <em>click / Q / E</em></label>
+    <div id="guns">
+      <div class="gb" id="gb-L"><span>PORT</span><div class="track"><i></i></div></div>
+      <div class="gb" id="gb-R"><span>STBD</span><div class="track"><i></i></div></div>
+    </div>
+  </div>
+  <div id="stations"></div>
+  <div id="loadout">
+    <span class="lo" id="lo-shot">ROUND SHOT</span>
+    <span class="lo" id="lo-ammo">⚫ 40</span>
+    <span class="lo" id="lo-mines">✹ 2</span>
+  </div>
+</section>
+
+<!-- ─────────────────────  THE COACH (one line, once)  ─────────────────── -->
+<div id="coach" hidden><b id="coach-t"></b><span id="coach-b"></span></div>
+
+<!-- ──────────────────────────  FLEET TALK  ───────────────────────── -->
+<div id="chatwrap">
+  <ul id="chatlog"></ul>
+  <div id="chatbox" hidden>
+    <span class="cb-to">TO THE FLEET</span>
+    <input id="chatinput" maxlength="140" autocomplete="off" spellcheck="false">
+  </div>
+</div>
+
+<!-- ────────────────────────────  MINIMAP  ────────────────────────── -->
+<div id="mapwrap"><canvas id="minimap"></canvas></div>
+
+<!-- ──────────────────────────  SCOREBOARD  ───────────────────────── -->
+<div id="scoreboard" hidden>
+  <div class="sb-inner">
+    <div class="sb-head">
+      <span id="sb-count">—</span>
+      <span class="sb-actions">
+        <button id="sb-command" type="button">TAKE COMMAND<em>spend the fleet's purse</em></button>
+        <button id="sb-side" type="button">CHANGE SIDES<em>sail for the other fleet</em></button>
+      </span>
+    </div>
+    <div class="sb-cols">
+      <div class="sb-col" id="sb-scarlet"></div>
+      <div class="sb-col" id="sb-cobalt"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────  DEAD  ───────────────────────────── -->
+<div id="deadpanel" hidden>
+  <div class="dead-inner">
+    <h2>YOUR SHIP WENT DOWN</h2>
+    <p id="deadwhy"></p>
+    <div class="dead-step"><b>PICK THE SHIP YOU COME BACK IN</b>
+      <span>You keep your score. Only the hull changes — click one.</span></div>
+    <div id="hullpick"></div>
+    <div id="respawn">RETURNING IN <b>0.0</b></div>
+  </div>
+</div>
+
+<!-- ────────────────────────────  END  ────────────────────────────── -->
+<div id="endscreen" hidden>
+  <div class="end-inner">
+    <div id="end-victor">SCARLET FLEET</div>
+    <div id="end-reason"></div>
+    <div id="end-board"></div>
+    <div id="end-next">NEXT ACTION IN <b>0</b></div>
+  </div>
+</div>
+
+<!-- ────────────────────────────  HELP  ───────────────────────────── -->
+<div id="helpcard">
+  <h3>THE DECK</h3>
+  <dl>
+    <dt>W / S</dt><dd>more sail · less sail (furled → reefed → full → press)</dd>
+    <dt>A / D</dt><dd>helm to port · to starboard</dd>
+    <dt>SPACE</dt><dd>sweeps — oars, to claw out of irons</dd>
+    <dt>MOUSE</dt><dd>point at a ship to <em>lock</em> her — lead and range are worked out for you</dd>
+    <dt>LEFT CLICK</dt><dd>fire the broadside that bears (guns are on the <em>sides</em>)</dd>
+    <dt>Q / E</dt><dd>fire port · starboard by hand</dd>
+    <dt>1 2 3</dt><dd>round · chain · grape shot</dd>
+    <dt>Z X C V</dt><dd>crew stations: quarters · sail · repair · lookout</dd>
+    <dt>R</dt><dd>lay a mine astern</dd>
+  </dl>
+  <h3>THE FLEET</h3>
+  <dl>
+    <dt>T <em>hold</em></dt><dd>signal wheel — attack, defend, help, powder</dd>
+    <dt>Y <em>hold</em></dt><dd>talk to the fleet: what to push, what to buy</dd>
+    <dt>G</dt><dd>quick "attack here" on the cursor</dd>
+    <dt>ENTER</dt><dd>say something to your own fleet</dd>
+    <dt>TAB</dt><dd>roster — and where you take or hand over command</dd>
+    <dt>ESC</dt><dd>close the roster · disarm an order</dd>
+  </dl>
+  <h3 class="cap-only">IN COMMAND</h3>
+  <dl class="cap-only">
+    <dt>CLICK</dt><dd>buy a level in the Admiralty · right-click sells it back at 60%</dd>
+    <dt>SHIFT 1–5</dt><dd>arm an order, then click the water to place it</dd>
+  </dl>
+  <h3>READING THE SCREEN</h3>
+  <dl>
+    <dt>GREEN ARCS</dt><dd>where your guns can reach — <em>bright</em> means loaded and bearing</dd>
+    <dt>RED BRACKET</dt><dd>an enemy. <em>GUNS ON YOU</em> means her broadside is lined up</dd>
+    <dt>RED ARROWS</dt><dd>enemies off the edge of the view, with the range to each</dd>
+    <dt>DASHED RING</dt><dd>a hostile shore battery's reach — do not loiter inside it</dd>
+  </dl>
+  <h3>WINNING</h3>
+  <p>Hold more of the eight <b>Holds</b> than the enemy and their <b>Colours</b>
+     bleed away. Strike them to nothing, or simply be ahead at the bell.
+     A battery must be <em>silenced</em> before anyone can land.</p>
+  <p class="help-foot"><b>H</b> hides this · <b>M</b> tactical chart · <b>F1</b> or <b>?</b> full ship's orders</p>
+</div>
+
+<!-- ──────────────────────────  BRIEFING  ─────────────────────────── -->
+<div id="briefing" class="fullcover" hidden>
+  <div class="bf">
+    <div class="bf-head">
+      <h1>SHIP'S ORDERS</h1>
+      <div class="bf-dots" id="bf-dots"></div>
+      <button type="button" id="bf-x" title="close">SKIP ✕</button>
+    </div>
+    <div class="bf-body" id="bf-body"></div>
+    <div class="bf-foot">
+      <button type="button" id="bf-prev">◂ BACK</button>
+      <span id="bf-count">1 / 6</span>
+      <button type="button" id="bf-tips" class="ghost">SHOW THE TIPS AGAIN</button>
+      <button type="button" id="bf-next" class="pri">NEXT ▸</button>
+    </div>
+  </div>
+</div>
+
+<div id="full" class="fullcover">
+  <div class="card">
+    <h1>THE ACTION IS FULL</h1>
+    <p>Ten hands are already aboard in this room, which is all she carries.
+       Wait for a berth, or start your own with <code>?room=yourcode</code>
+       on the end of the address.</p>
+  </div>
+</div>
+
+<button id="orders-btn" type="button" title="ship's orders — the rules, in six pages (F1)">?</button>
+<div id="toast"></div>
+<div id="conn"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

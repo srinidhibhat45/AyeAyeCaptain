@@ -1,0 +1,41 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Atlas — sprite sheet</title>
+<style>
+  body{margin:0;background:#0d1b2a;color:#e9e0ca;font:12px ui-sans-serif,system-ui}
+  h2{font:13px/1 ui-monospace,monospace;letter-spacing:.2em;color:#c9a227;margin:16px 10px 6px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;padding:0 10px}
+  .cell{background:linear-gradient(160deg,#123049,#071523);border:1px solid #1d3b55;border-radius:6px;padding:6px;text-align:center}
+  .cell canvas{display:block;image-rendering:auto}
+  .cell b{display:block;font:10px ui-monospace,monospace;color:#8fb4c8;margin-top:4px;letter-spacing:.08em}
+</style></head><body>
+<h2>SHIPS</h2><div class="row" id="ships"></div>
+<h2>STRUCTURES &amp; PICKUPS</h2><div class="row" id="things"></div>
+<h2>EFFECTS</h2><div class="row" id="fx"></div>
+<script type="module">
+import { buildAtlas, buildNoise } from './js/gl/art.js';
+const a = buildAtlas();
+const groups = {
+  ships: ['ship_cutter','ship_brigantine','ship_xebec','ship_galleon','ship_flagship','ship_barque'],
+  things:['fort','banner','mine','salvage','sail','yard'],
+  fx:    ['glow','smoke','spark','foam','flash','ball','ring','wake'],
+};
+for (const [id, names] of Object.entries(groups)) {
+  const host = document.getElementById(id);
+  for (const n of names) {
+    const [w,h] = a.size[n], uv = a.uv[n];
+    const scale = id==='ships' ? 1.15 : Math.min(1, 520/w);
+    const cell = document.createElement('div'); cell.className='cell';
+    const c = document.createElement('canvas');
+    c.width = Math.round(w*scale); c.height = Math.round(h*scale);
+    c.getContext('2d').drawImage(a.canvas, uv[0]*2048, uv[1]*2048, w, h, 0,0, c.width, c.height);
+    cell.appendChild(c);
+    const b = document.createElement('b'); b.textContent = `${n}  ${w}x${h}`;
+    cell.appendChild(b); host.appendChild(cell);
+  }
+}
+const host = document.getElementById('fx');
+const nc = buildNoise(256);
+const cell = document.createElement('div'); cell.className='cell';
+cell.appendChild(nc);
+const b=document.createElement('b'); b.textContent='noise 256 (RGBA)'; cell.appendChild(b); host.appendChild(cell);
+</script></body></html>
