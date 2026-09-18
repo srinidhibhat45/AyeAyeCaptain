@@ -12,8 +12,16 @@ shoot back and the wind decides who can reach them.
 npm install && npm start
 ```
 
-Then open **http://localhost:8787**, put in a name, and you are at sea. Send the
-same link to anyone else; add `?room=<anything>` for a private action.
+Then open **http://localhost:8787**, put in a name, and you are at sea.
+
+The join card takes a **room code**. Leave it blank and you sail the open sea,
+where anyone with the plain link ends up together; type anything at all and
+only people who typed the same thing join you. *Copy the invite link* hands you
+the address to paste to them. Spelling is forgiving — `Friday Night`,
+`fridaynight` and `FRIDAY-NIGHT` are one room, because a code read off a chat
+message by eight people in six countries cannot afford to be fussy. Once you
+are aboard, the room name on the scoreboard (**Tab**) is the way back to that
+card to change rooms.
 
 **Four to ten players.** Two sides, one Captain on each, always. AI hands crew
 any berth nobody has taken, and both fleets always sail the same number of

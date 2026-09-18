@@ -69,7 +69,36 @@ const SQUALL_PUSH = SQUALL.driftPush;
 //  entirely, so a shared link still drops you in with no ceremony.
 // ---------------------------------------------------------------------------
 const query = new URLSearchParams(location.search);
-document.getElementById('join-roomid').textContent = query.get('room') || 'main';
+
+// A room code gets read off a chat message by people in a dozen countries, so
+// it must not be fussy. Case, spaces and punctuation all fall away, which
+// makes "Friday Night", "fridaynight" and "FRIDAY-NIGHT" one room instead of
+// three — and three rooms, each with one baffled player in it, is precisely
+// the failure you cannot debug over text with someone eight time zones away.
+function roomCode(v) {
+  return (v || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24);
+}
+
+/** Show the room on the address bar without reloading, so a copied link is right. */
+function setRoomInUrl(code) {
+  const u = new URL(location.href);
+  if (code && code !== 'main') u.searchParams.set('room', code);
+  else u.searchParams.delete('room');
+  history.replaceState(null, '', u);
+}
+
+/** The link to hand out: this room, and nothing personal carried along with it. */
+function inviteLink(code) {
+  const u = new URL(location.href);
+  u.search = '';
+  if (code && code !== 'main') u.searchParams.set('room', code);
+  return u.toString();
+}
+
+// Settle the spelling before anything opens a socket, so a link someone pasted
+// with odd capitals lands in the same room as a code typed by hand.
+const urlRoom = roomCode(query.get('room'));
+if (query.has('room')) setRoomInUrl(urlRoom);
 
 function stored(k) { try { return localStorage.getItem(k); } catch { return null; } }
 const needJoin = !query.get('name') && !stored('aac_name');
@@ -112,29 +141,75 @@ const net = new Net({
   },
 });
 
-function showJoin() {
+let joinWired = false;
+let joinTeam = '';
+
+// The card does double duty: the first visit's name-and-side prompt, and the
+// way anyone changes room later. Wiring happens once, because it reopens.
+function showJoin(opts = {}) {
   const card = document.getElementById('joincard');
   const name = document.getElementById('join-name');
+  const roomEl = document.getElementById('join-room');
+  const hint = document.getElementById('join-hint');
   const sides = [...document.querySelectorAll('.js')];
+
+  const here = roomCode(new URLSearchParams(location.search).get('room'));
+  name.value = stored('aac_name') || name.value;
+  roomEl.value = here && here !== 'main' ? here : '';
+  hint.textContent = '';
   card.style.display = 'flex';
-  name.focus();
-  let team = '';
-  for (const b of sides) {
-    b.addEventListener('click', () => {
-      team = b.dataset.team;
-      for (const o of sides) o.classList.toggle('on', o === b);
+
+  if (!joinWired) {
+    joinWired = true;
+    joinTeam = stored('aac_team') || '';
+    for (const b of sides) {
+      b.classList.toggle('on', b.dataset.team === joinTeam);
+      b.addEventListener('click', () => {
+        joinTeam = b.dataset.team;
+        for (const o of sides) o.classList.toggle('on', o === b);
+      });
+    }
+
+    const go = () => {
+      const n = name.value.trim().slice(0, 18);
+      const code = roomCode(roomEl.value);
+      const was = roomCode(new URLSearchParams(location.search).get('room'));
+      safeSet('aac_name', n || `Hand ${Math.floor(Math.random() * 900 + 100)}`);
+      safeSet('aac_team', joinTeam);
+      card.style.display = 'none';
+      setRoomInUrl(code);
+      // Already at sea and changing room: the cleanest way into a different
+      // match is to arrive fresh, rather than unpick a world mid-tick.
+      if (net.state === 'open') { if (code !== was) location.reload(); return; }
+      net.connect();
+    };
+
+    document.getElementById('join-go').addEventListener('click', go);
+    for (const el of [name, roomEl]) {
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    }
+
+    document.getElementById('join-copy').addEventListener('click', async () => {
+      const link = inviteLink(roomCode(roomEl.value));
+      // The link goes on screen either way. A clipboard write can be refused
+      // by permissions, by an insecure origin, or by a browser that simply
+      // does not do it — and a host who thinks they copied a link and pasted
+      // nothing is worse off than one who can see it and copy it by hand.
+      let copied = false;
+      try { await navigator.clipboard.writeText(link); copied = true; } catch {}
+      hint.textContent = (copied ? 'Copied — ' : 'Copy this — ') + link;
     });
   }
-  const go = () => {
-    const n = name.value.trim().slice(0, 18);
-    safeSet('aac_name', n || `Hand ${Math.floor(Math.random() * 900 + 100)}`);
-    safeSet('aac_team', team);
-    card.style.display = 'none';
-    net.connect();
-  };
-  document.getElementById('join-go').addEventListener('click', go);
-  name.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+
+  (opts.focus === 'room' ? roomEl : name).focus();
 }
+
+// The room name on the scoreboard is the way back to this card once a name is
+// remembered and the join prompt has stopped appearing. Delegated, because the
+// scoreboard redraws itself several times a second.
+document.addEventListener('click', (e) => {
+  if (e.target instanceof Element && e.target.closest('#sb-room')) showJoin({ focus: 'room' });
+});
 
 if (warnTouch) {
   const warn = document.getElementById('touchwarn');

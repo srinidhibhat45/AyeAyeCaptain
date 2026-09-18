@@ -579,12 +579,19 @@ body.coaching #feed{opacity:.22;transition:opacity .3s}
   display:block;font-family:var(--ff-display);font-size:9.5px;letter-spacing:.24em;
   color:var(--brass);margin:0 0 7px;text-align:left;
 }
-#join-name{
+#join-name,#join-room{
   width:100%;padding:10px 12px;margin-bottom:18px;border-radius:6px;
   background:rgba(0,0,0,.45);border:1px solid var(--hair);color:var(--parch);
   font-family:var(--ff-ui);font-size:14px;outline:0;caret-color:var(--brass-lite);
 }
-#join-name:focus{border-color:var(--brass-lite)}
+#join-name:focus,#join-room:focus{border-color:var(--brass-lite)}
+/* The code is typed and read back far more often than a name — letterspaced
+   monospace so an l and a 1 cannot be confused across a chat window. */
+#join-room{font-family:var(--ff-mono);letter-spacing:.08em;margin-bottom:9px}
+.card.join label .opt{
+  font-family:var(--ff-ui);letter-spacing:0;font-size:10px;
+  color:var(--muted);text-transform:none;
+}
 .join-sides{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:22px}
 .js{
   padding:9px 4px;border-radius:6px;cursor:pointer;
@@ -602,8 +609,30 @@ body.coaching #feed{opacity:.22;transition:opacity .3s}
   border:0;transition:transform .12s,filter .16s;
 }
 .join-go:hover{transform:translateY(-1px);filter:brightness(1.1)}
-.join-room{font-size:10.5px!important;color:var(--muted)!important;margin-top:18px}
+/* Now sits between the code field and the button, not under it. */
+.join-room{font-size:10.5px!important;color:var(--muted)!important;margin:0 0 20px}
 .join-room b{color:var(--parch-dim)}
+/* Secondary to PUT TO SEA: the same shape, none of the gold, so the eye still
+   knows which one starts the game. */
+.join-copy{
+  width:100%;padding:10px;margin-top:9px;border-radius:7px;cursor:pointer;
+  font-family:var(--ff-display);font-size:10px;letter-spacing:.2em;
+  color:var(--parch-dim);background:rgba(255,255,255,.04);
+  border:1px solid var(--hair-soft);transition:all .16s;
+}
+.join-copy:hover{color:var(--parch);border-color:var(--brass)}
+.join-hint{
+  font-size:10.5px!important;color:var(--brass-lite)!important;margin:10px 0 0;
+  min-height:13px;word-break:break-all;
+}
+/* The room name on the scoreboard is how you get back to the join card once a
+   remembered name has stopped it appearing on its own. */
+.sb-room{
+  font:inherit;letter-spacing:inherit;color:inherit;background:0;padding:0;
+  border:0;border-bottom:1px dotted var(--hair);cursor:pointer;transition:color .16s;
+}
+.sb-room:hover{color:var(--brass-lite)}
+.sb-room:hover b{color:var(--brass-lite)}
 
 /* ==========================================================================
    THE BRIEFING — six pages of rules, shown once on a first ever visit

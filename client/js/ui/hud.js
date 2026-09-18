@@ -1114,7 +1114,9 @@ export class HUD {
     const r = s.roster || { scarlet: { humans: 0, hulls: 0 }, cobalt: { humans: 0, hulls: 0 } };
     const total = r.scarlet.humans + r.cobalt.humans;
     $('sb-count').innerHTML =
-      `ROOM <b>${esc(this.room || 'main')}</b> &nbsp;·&nbsp; <b>${total}</b> of ${MAX_PER_TEAM * 2} aboard`
+      `<button type="button" id="sb-room" class="sb-room"`
+      + ` title="change room, or copy the invite link">ROOM <b>${esc(this.room || 'main')}</b></button>`
+      + ` &nbsp;·&nbsp; <b>${total}</b> of ${MAX_PER_TEAM * 2} aboard`
       + ` &nbsp;·&nbsp; SCARLET <b>${r.scarlet.humans}</b> of ${r.scarlet.hulls} hulls`
       + ` &nbsp;·&nbsp; COBALT <b>${r.cobalt.humans}</b> of ${r.cobalt.hulls}`;
 

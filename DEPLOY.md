@@ -114,9 +114,17 @@ all (the playtest harness, `curl`) are always allowed through.
 - [ ] **If the server is on Render's free plan, load the page five minutes
       early.** It sleeps after fifteen idle minutes and the first visitor
       otherwise waits out a cold start of the better part of a minute.
-- [ ] Decide rooms. The bare URL puts everyone in `main`, which is what you
-      want for one group. `?room=anycode` makes a private match; **share the
-      client URL with the room on it**, not the server's.
+- [ ] Decide rooms. The bare URL puts everyone in the open sea, which is what
+      you want for one group. For a private match, put a code on the join card
+      and use *copy the invite link* — **share the client link, not the
+      server's**. Codes ignore case, spaces and punctuation, so a code written
+      down one way and typed another still lands in the same room.
+- [ ] **Put the server near the players, not near you.** One box serves
+      everyone, so a fleet spread across continents is all paying the distance
+      to it. Pick the region closest to most of them, or failing that the one
+      in the middle: London or Frankfurt splits Europe and the Americas,
+      Singapore splits Europe and Asia-Pacific. This is chosen when the
+      service is created and is a nuisance to change afterwards.
 - [ ] Someone will open your link on a phone. They are told the game needs a
       keyboard rather than being dropped onto a deck they cannot steer, and
       they do **not** take up a berth while that notice is showing. If they

@@ -25,9 +25,14 @@
       <button type="button" class="js any on" data-team="">EITHER</button>
       <button type="button" class="js cobalt" data-team="cobalt">COBALT</button>
     </div>
+    <label for="join-room">ROOM CODE <span class="opt">— leave blank for the open sea</span></label>
+    <input id="join-room" maxlength="24" autocomplete="off" spellcheck="false" placeholder="open sea">
+    <p class="join-room">Anyone who types the same code sails with you, and nobody else can
+       wander in. Spelling is forgiving — <b>Friday Night</b>, <b>fridaynight</b> and
+       <b>FRIDAY-NIGHT</b> are all the same room.</p>
     <button id="join-go" type="button" class="join-go">PUT TO SEA</button>
-    <p class="join-room">Sailing in room <b id="join-roomid">main</b> — share this page's link and your
-       friends join the same action. Add <code>?room=anything</code> for a private one.</p>
+    <button id="join-copy" type="button" class="join-copy">COPY THE INVITE LINK</button>
+    <p class="join-hint" id="join-hint"></p>
   </div>
 </div>
 
@@ -250,8 +255,8 @@
   <div class="card">
     <h1>THE ACTION IS FULL</h1>
     <p>Ten hands are already aboard in this room, which is all she carries.
-       Wait for a berth, or start your own with <code>?room=yourcode</code>
-       on the end of the address.</p>
+       Wait for a berth, or reload and put a room code of your own on the join
+       card, which opens a second match alongside this one.</p>
   </div>
 </div>
 
