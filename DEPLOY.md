@@ -63,18 +63,29 @@ curl https://your-app.fly.dev/healthz
 
 ### 2. The client
 
-```bash
-npx vercel link
-npx vercel env add AAC_SERVER production     # paste: wss://your-app.fly.dev
-npx vercel --prod
+Put the server's address in one committed file and push. Vercel is watching
+the repo, so that push *is* the deploy.
+
+```js
+// client/config.js
+window.AAC_SERVER = 'wss://aye-aye-captain.onrender.com';
 ```
+
+Mind the `wss://`. A browser on an `https://` page refuses a plaintext `ws://`
+socket, so an address that starts `ws://` will be blocked no matter how
+healthy the server is.
 
 `vercel.json` already sets the build (`npm run build`) and the output
 directory (`dist`). The build copies `client/` and `shared/` into `dist/` and
-writes `dist/config.js` from `AAC_SERVER`.
+writes `dist/config.js` from the address above.
 
-> **`AAC_SERVER` is baked in at build time, not read at run time.** Change the
-> variable and you must redeploy, or the site keeps pointing at the old server.
+You *can* instead set an `AAC_SERVER` environment variable in the Vercel
+project, which overrides the file. It is the worse of the two:
+
+> **An environment variable is baked in at build time, not read at run time.**
+> Change it without redeploying and the site keeps pointing at the old server
+> — which looks exactly like a server that has died. The committed address
+> cannot drift that way, because changing it *is* a deploy.
 
 ### 3. Close the gangway (optional, after step 2)
 
