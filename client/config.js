@@ -20,4 +20,4 @@
 //  For a one-off test you can override it per-visit with ?server=wss://host
 //  on the end of the URL, without touching this file.
 // ============================================================================
-window.AAC_SERVER = '';
+window.AAC_SERVER = 'wss://enrolled-diesel-atmosphere-portland.trycloudflare.com';
