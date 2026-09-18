@@ -106,6 +106,10 @@ all (the playtest harness, `curl`) are always allowed through.
 - [ ] Decide rooms. The bare URL puts everyone in `main`, which is what you
       want for one group. `?room=anycode` makes a private match; **share the
       client URL with the room on it**, not the server's.
+- [ ] Someone will open your link on a phone. They are told the game needs a
+      keyboard rather than being dropped onto a deck they cannot steer, and
+      they do **not** take up a berth while that notice is showing. If they
+      have a keyboard attached there is a button to come aboard anyway.
 - [ ] Ten players is the hard cap per room. Beyond that they get *THE ACTION IS
       FULL*. Empty berths are crewed by bots, so four players is a real match.
 

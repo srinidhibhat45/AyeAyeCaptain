@@ -74,8 +74,24 @@ document.getElementById('join-roomid').textContent = query.get('room') || 'main'
 function stored(k) { try { return localStorage.getItem(k); } catch { return null; } }
 const needJoin = !query.get('name') && !stored('aac_name');
 
+// Can this machine actually sail her? The helm is on the keyboard and the guns
+// follow a pointer, so a phone has nothing to play with — and because the game
+// is all canvas it would otherwise load perfectly, look inviting, and then
+// ignore every tap. Better to say so and send them to a real desk.
+//
+// A touchscreen laptop reports BOTH a coarse pointer and a fine one, as does a
+// tablet with a trackpad attached, and those are fine to sail. Only a device
+// with no fine pointer at all is turned back — and even then there is a way
+// through, because someone may have a keyboard we cannot see.
+function handheld() {
+  try {
+    return matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches;
+  } catch { return false; }
+}
+const warnTouch = handheld() && !stored('aac_touch_ok');
+
 const net = new Net({
-  autoConnect: !needJoin,
+  autoConnect: !needJoin && !warnTouch,
   status: (s, info) => hud.setConn(s, info),
   msg: (m) => {
     if (m.k === 'world') {
@@ -96,7 +112,7 @@ const net = new Net({
   },
 });
 
-if (needJoin) {
+function showJoin() {
   const card = document.getElementById('joincard');
   const name = document.getElementById('join-name');
   const sides = [...document.querySelectorAll('.js')];
@@ -118,6 +134,18 @@ if (needJoin) {
   };
   document.getElementById('join-go').addEventListener('click', go);
   name.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+}
+
+if (warnTouch) {
+  const warn = document.getElementById('touchwarn');
+  warn.style.display = 'flex';
+  document.getElementById('tw-go').addEventListener('click', () => {
+    safeSet('aac_touch_ok', '1');
+    warn.style.display = 'none';
+    if (needJoin) showJoin(); else net.connect();
+  });
+} else if (needJoin) {
+  showJoin();
 }
 
 function onSnap(s) {

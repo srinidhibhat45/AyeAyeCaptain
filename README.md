@@ -345,6 +345,12 @@ One convenience worth knowing: the game server also serves a full copy of the
 client on its own URL, so that address alone is a complete, playable game if
 you would rather not split anything, or if the CDN is having a bad day.
 
+A phone or tablet with no pointer of its own is turned back at the gangway
+with a note about the keyboard, rather than loading a deck it cannot steer and
+quietly holding one of the ten berths. A touchscreen laptop, or a tablet with a
+trackpad, reports a fine pointer as well and sails as normal — and there is a
+way through regardless, for a keyboard we cannot see.
+
 ```bash
 npm run check    # colour lint, endpoint resolution, roster rules, 13 scenarios
 ```
